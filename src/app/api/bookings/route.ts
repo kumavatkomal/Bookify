@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { appointmentTypeId, providerId, startTime, endTime, answers } = body
+    const { appointmentTypeId, providerId, startTime, endTime, answers, notes } = body
 
     // Validate required fields
     if (!appointmentTypeId || !startTime || !endTime) {
@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
           providerId,
           startTime: start,
           endTime: end,
+          notes: notes || null,
           status: 'CONFIRMED',
           answers: answers
             ? {
@@ -169,9 +170,28 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status') as AppointmentStatus | null
     const upcoming = searchParams.get('upcoming') === 'true'
+    const appointmentTypeId = searchParams.get('appointmentTypeId')
+    const organiserId = searchParams.get('organiserId')
+    const organiserScope = searchParams.get('organiser') === 'true'
+    const includeAll = searchParams.get('all') === 'true'
 
-    const where: any = {
-      customerId: session.user.id,
+    const where: any = {}
+
+    const isPrivileged = session.user.role === 'ADMIN' || session.user.role === 'ORGANISER'
+
+    if (isPrivileged && includeAll && session.user.role === 'ADMIN') {
+      // No additional filter
+    } else if (isPrivileged && appointmentTypeId) {
+      where.appointmentTypeId = appointmentTypeId
+      if (session.user.role === 'ORGANISER') {
+        where.appointmentType = { organiserId: session.user.id }
+      }
+    } else if (isPrivileged && organiserScope) {
+      where.appointmentType = { organiserId: session.user.id }
+    } else if (isPrivileged && organiserId && session.user.role === 'ADMIN') {
+      where.appointmentType = { organiserId }
+    } else {
+      where.customerId = session.user.id
     }
 
     if (status) {
@@ -188,6 +208,12 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         appointmentType: true,
+        customer: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
         provider: true,
       },
       orderBy: {

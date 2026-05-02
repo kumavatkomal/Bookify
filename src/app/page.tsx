@@ -1,9 +1,13 @@
 import Link from 'next/link'
+import Brand from '@/components/Brand'
 
 export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center max-w-2xl px-4">
+        <div className="flex justify-center mb-6">
+          <Brand size={80} showText={false} href="/" />
+        </div>
         <h1 className="text-5xl font-bold text-gray-900 mb-4">
           Welcome to AppointEase
         </h1>
