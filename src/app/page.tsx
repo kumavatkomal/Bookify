@@ -9,7 +9,7 @@ export default function Home() {
           <Brand size={80} showText={false} href="/" />
         </div>
         <h1 className="text-5xl font-bold text-gray-900 mb-4">
-          Welcome to AppointEase
+          Welcome to Bookify
         </h1>
         <p className="text-xl text-gray-600 mb-8">
           AI-powered appointment booking system with real-time availability

@@ -7,7 +7,7 @@ import AuthSessionProvider from '@/components/SessionProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AppointEase - Smart Appointment Booking',
+  title: 'Bookify - Smart Appointment Booking',
   description: 'AI-powered appointment booking system with real-time availability',
 }
 

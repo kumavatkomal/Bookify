@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateSlots, generateSlotsForRange, getNextAvailableSlot } from '@/lib/slots'
 import { parse, addDays } from 'date-fns'
 
+// Mark route as dynamic
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
