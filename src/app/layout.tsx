@@ -1,13 +1,17 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Poppins } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import AuthSessionProvider from '@/components/SessionProvider'
 
-const inter = Inter({ subsets: ['latin'] })
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-sans',
+})
 
 export const metadata: Metadata = {
-  title: 'AppointEase - Smart Appointment Booking',
+  title: 'Bookify - Smart Appointment Booking',
   description: 'AI-powered appointment booking system with real-time availability',
 }
 
@@ -18,7 +22,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={poppins.variable}>
         <AuthSessionProvider>
           {children}
           <Toaster position="top-right" />

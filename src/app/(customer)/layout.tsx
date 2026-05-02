@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { Calendar, User, LogOut } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import Brand from '@/components/Brand'
 
@@ -35,7 +35,7 @@ export default function CustomerLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -59,9 +59,12 @@ export default function CustomerLayout({
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600">
-                <span className="font-medium">{session.user?.name}</span>
-              </div>
+              <Link
+                href="/profile"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                {session.user?.name}
+              </Link>
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
                 className="text-gray-600 hover:text-gray-900 transition-colors"

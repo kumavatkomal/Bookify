@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendBookingConfirmationEmail } from '@/lib/email'
-import { AppointmentStatus } from '@prisma/client'
+import { AppointmentStatus, Prisma } from '@prisma/client'
 
 // POST /api/bookings - Create new booking
 export async function POST(req: NextRequest) {
@@ -37,105 +37,126 @@ export async function POST(req: NextRequest) {
     }
 
     // Use transaction to prevent double booking
-    const booking = await prisma.$transaction(async (tx) => {
-      // Get appointment type with capacity
-      const appointmentType = await tx.appointmentType.findUnique({
-        where: { id: appointmentTypeId },
-      })
-
-      if (!appointmentType) {
-        throw new Error('Appointment type not found')
-      }
-
-      // Check for overlapping bookings
-      const overlappingBookings = await tx.booking.count({
-        where: {
-          appointmentTypeId,
-          providerId,
-          status: {
-            in: ['CONFIRMED', 'PENDING'],
+    const { booking, appointmentType } = await prisma.$transaction(
+      async (tx) => {
+        // Get appointment type with capacity (minimal fields to keep transaction fast)
+        const appointmentType = await tx.appointmentType.findUnique({
+          where: { id: appointmentTypeId },
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            maxBookingsPerSlot: true,
+            requiresConfirmation: true,
           },
-          OR: [
-            {
-              AND: [
-                { startTime: { lte: start } },
-                { endTime: { gt: start } },
-              ],
-            },
-            {
-              AND: [
-                { startTime: { lt: end } },
-                { endTime: { gte: end } },
-              ],
-            },
-            {
-              AND: [
-                { startTime: { gte: start } },
-                { endTime: { lte: end } },
-              ],
-            },
-          ],
-        },
-      })
+        })
 
-      // Check capacity
-      if (overlappingBookings >= appointmentType.maxBookingsPerSlot) {
-        throw new Error('Slot is fully booked')
-      }
+        if (!appointmentType) {
+          throw new Error('Appointment type not found')
+        }
 
-      // Create the booking
-      const newBooking = await tx.booking.create({
-        data: {
-          customerId: session.user.id,
-          appointmentTypeId,
-          providerId,
-          startTime: start,
-          endTime: end,
-          notes: notes || null,
-          status: 'CONFIRMED',
-          answers: answers
-            ? {
-                create: answers.map((answer: { questionId: string; answer: string }) => ({
-                  questionId: answer.questionId,
-                  answer: answer.answer,
-                })),
-              }
-            : undefined,
-        },
-        include: {
-          customer: true,
-          appointmentType: true,
-          provider: true,
-          answers: {
-            include: {
-              question: true,
+        // Check for overlapping bookings
+        const overlappingBookings = await tx.booking.count({
+          where: {
+            appointmentTypeId,
+            providerId,
+            status: {
+              in: ['CONFIRMED', 'PENDING'],
             },
+            OR: [
+              {
+                AND: [
+                  { startTime: { lte: start } },
+                  { endTime: { gt: start } },
+                ],
+              },
+              {
+                AND: [
+                  { startTime: { lt: end } },
+                  { endTime: { gte: end } },
+                ],
+              },
+              {
+                AND: [
+                  { startTime: { gte: start } },
+                  { endTime: { lte: end } },
+                ],
+              },
+            ],
           },
-        },
-      })
+        })
 
-      return newBooking
+        // Check capacity
+        if (overlappingBookings >= appointmentType.maxBookingsPerSlot) {
+          throw new Error('Slot is fully booked')
+        }
+
+        // Determine initial status based on requiresConfirmation
+        const initialStatus = appointmentType.requiresConfirmation ? 'PENDING' : 'CONFIRMED'
+
+        // Create the booking
+        const newBooking = await tx.booking.create({
+          data: {
+            customerId: session.user.id,
+            appointmentTypeId,
+            providerId,
+            startTime: start,
+            endTime: end,
+            notes: notes || null,
+            status: initialStatus,
+            answers: answers
+              ? {
+                  create: answers.map((answer: { questionId: string; answer: string }) => ({
+                    questionId: answer.questionId,
+                    answer: answer.answer,
+                  })),
+                }
+              : undefined,
+          },
+          select: {
+            id: true,
+            appointmentTypeId: true,
+            startTime: true,
+            endTime: true,
+            status: true,
+            confirmationCode: true,
+            customerId: true,
+          },
+        })
+
+        return { booking: newBooking, appointmentType }
+      },
+      { maxWait: 5000, timeout: 10000 }
+    )
+
+    const customer = await prisma.user.findUnique({
+      where: { id: booking.customerId },
+      select: { name: true, email: true },
     })
 
-    // Send confirmation email (async, don't wait)
-    sendBookingConfirmationEmail(
-      booking.customer.email,
-      booking.customer.name,
-      {
-        appointmentName: booking.appointmentType.name,
-        date: booking.startTime.toLocaleDateString(),
-        time: `${booking.startTime.toLocaleTimeString()} - ${booking.endTime.toLocaleTimeString()}`,
-        location: booking.appointmentType.location || 'TBD',
-        confirmationCode: booking.confirmationCode,
-      }
-    ).catch((err) => console.error('Email send failed:', err))
+    // Send confirmation email only if booking is confirmed
+    if (booking.status === 'CONFIRMED' && customer?.email && customer?.name) {
+      sendBookingConfirmationEmail(
+        customer.email,
+        customer.name,
+        {
+          appointmentName: appointmentType.name,
+          date: booking.startTime.toLocaleDateString(),
+          time: `${booking.startTime.toLocaleTimeString()} - ${booking.endTime.toLocaleTimeString()}`,
+          location: appointmentType.location || 'TBD',
+          confirmationCode: booking.confirmationCode,
+        }
+      ).catch((err) => console.error('Email send failed:', err))
+    }
 
     return NextResponse.json(
       {
-        message: 'Booking created successfully',
+        message: booking.status === 'CONFIRMED' 
+          ? 'Booking created successfully' 
+          : 'Booking created and pending confirmation',
         booking: {
           id: booking.id,
-          appointmentType: booking.appointmentType.name,
+          appointmentType: appointmentType.name,
           startTime: booking.startTime,
           endTime: booking.endTime,
           status: booking.status,
@@ -146,16 +167,40 @@ export async function POST(req: NextRequest) {
     )
   } catch (error: any) {
     console.error('Booking error:', error)
-    
+
     if (error.message === 'Appointment type not found') {
       return NextResponse.json({ error: 'Appointment type not found' }, { status: 404 })
     }
-    
+
     if (error.message === 'Slot is fully booked') {
       return NextResponse.json({ error: 'Slot is fully booked' }, { status: 409 })
     }
 
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json({ error: 'Booking conflict. Please try again.' }, { status: 409 })
+      }
+      if (error.code === 'P2003') {
+        return NextResponse.json({ error: 'Invalid booking data. Please refresh and try again.' }, { status: 400 })
+      }
+    }
+
+    if (
+      error?.name === 'PrismaClientInitializationError' ||
+      error?.name === 'PrismaClientRustPanicError'
+    ) {
+      return NextResponse.json(
+        { error: 'Database connection error. Please retry.' },
+        { status: 500 }
+      )
+    }
+
+    const message =
+      process.env.NODE_ENV !== 'production' && error?.message
+        ? error.message
+        : 'Internal server error'
+
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 

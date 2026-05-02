@@ -167,7 +167,7 @@ export async function PATCH(
             appointmentType: true,
           },
         })
-      })
+      }, { timeout: 15000, maxWait: 5000 })
 
       return NextResponse.json({
         message: 'Booking rescheduled successfully',

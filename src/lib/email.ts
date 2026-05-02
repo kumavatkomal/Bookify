@@ -206,3 +206,72 @@ export async function sendPasswordResetEmail(
 
   await transporter.sendMail(mailOptions)
 }
+
+export async function sendReminderEmail(params: {
+  to: string
+  name: string
+  appointmentName: string
+  date: string
+  time: string
+  location: string
+  subject: string
+  message: string
+}): Promise<void> {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: params.to,
+    subject: params.subject,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%); color: white; padding: 24px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 24px; border-radius: 0 0 10px 10px; }
+          .card { background: white; padding: 16px; border-left: 4px solid #6366f1; margin: 16px 0; border-radius: 6px; }
+          .detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; }
+          .detail-label { font-weight: bold; color: #666; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>⏰ Appointment Reminder</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${params.name},</p>
+            <p>${params.message}</p>
+            <div class="card">
+              <div class="detail-row">
+                <span class="detail-label">Service:</span>
+                <span>${params.appointmentName}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Date:</span>
+                <span>${params.date}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Time:</span>
+                <span>${params.time}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Location:</span>
+                <span>${params.location}</span>
+              </div>
+            </div>
+            <p>We look forward to seeing you!</p>
+          </div>
+          <div class="footer">
+            <p>© 2024 Buddify. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  }
+
+  await transporter.sendMail(mailOptions)
+}

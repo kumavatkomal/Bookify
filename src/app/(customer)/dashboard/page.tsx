@@ -90,33 +90,46 @@ export default function CustomerDashboard() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAppointments.map((appointment) => (
-            <Card key={appointment.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="text-lg">{appointment.name}</CardTitle>
+            <Card
+              key={appointment.id}
+              className="group flex h-full flex-col border border-slate-200/70 bg-white shadow-sm hover:bg-slate-50"
+            >
+              <CardHeader className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <CardTitle className="text-lg leading-snug">
+                    {appointment.name}
+                  </CardTitle>
+                  <Badge className="shrink-0">{appointment.duration} min</Badge>
+                </div>
                 {appointment.description && (
-                  <p className="text-sm text-gray-600 mt-2">
+                  <p className="text-sm text-slate-600">
                     {appointment.description}
                   </p>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="mt-auto">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock size={16} />
-                    <span>{appointment.duration} minutes</span>
-                  </div>
-
-                  {appointment.location && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin size={16} />
+                  {appointment.location ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <MapPin size={16} className="text-slate-400" />
                       <span>{appointment.location}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <MapPin size={16} className="text-slate-400" />
+                      <span>Location shared after booking</span>
                     </div>
                   )}
 
-                  {appointment.requiresPayment && appointment.paymentAmount && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <DollarSign size={16} />
+                  {appointment.requiresPayment && appointment.paymentAmount ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <DollarSign size={16} className="text-slate-400" />
                       <span>₹{appointment.paymentAmount}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <DollarSign size={16} className="text-slate-400" />
+                      <span>Free</span>
                     </div>
                   )}
 
