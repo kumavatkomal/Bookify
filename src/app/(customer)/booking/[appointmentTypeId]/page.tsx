@@ -364,7 +364,7 @@ export default function BookingPage() {
           <Button
             variant="primary"
             className="w-full"
-            onClick={handleBooking}
+            onClick={() => handleBooking()}
             isLoading={isBooking}
             disabled={!selectedSlot}
           >
