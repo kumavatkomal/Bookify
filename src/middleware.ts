@@ -21,20 +21,6 @@ export default withAuth(
       }
     }
 
-    // Customer routes - any authenticated user (CUSTOMER, ORGANISER, ADMIN)
-    if (path.startsWith('/dashboard') || path.startsWith('/my-bookings') || path.startsWith('/booking') || path.startsWith('/confirmation')) {
-      if (!token) {
-        return NextResponse.redirect(new URL('/login', req.url))
-      }
-    }
-
-    // Profile routes - any authenticated user
-    if (path.startsWith('/profile')) {
-      if (!token) {
-        return NextResponse.redirect(new URL('/login', req.url))
-      }
-    }
-
     return NextResponse.next()
   },
   {
@@ -44,15 +30,11 @@ export default withAuth(
   }
 )
 
-// Specify which routes to protect
+// Only protect admin and organiser routes in middleware
+// Customer routes are protected by their layout component
 export const config = {
   matcher: [
     '/admin/:path*',
     '/organiser/:path*',
-    '/dashboard/:path*',
-    '/my-bookings/:path*',
-    '/booking/:path*',
-    '/confirmation/:path*',
-    '/profile/:path*',
   ],
 }
