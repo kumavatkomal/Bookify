@@ -4,6 +4,10 @@
   "description": "<div align=\"center\">",
   "main": "index.js",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -30,9 +34,12 @@
     "@types/nodemailer": "^8.0.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
+    "next": "^14.2.35",
     "next-auth": "^4.24.5",
     "nodemailer": "^6.10.1",
     "pg": "^8.20.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "ts-node": "^10.9.2"
   }
 }
