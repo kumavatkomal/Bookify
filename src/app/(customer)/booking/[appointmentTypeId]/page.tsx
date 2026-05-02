@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
 import { Badge } from '@/components/ui/Badge'
+import AIChatWidget from '@/components/ai/AIChatWidget'
 import { format, addDays, startOfWeek } from 'date-fns'
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -19,6 +20,21 @@ interface Slot {
   isAvailable: boolean
 }
 
+interface AppointmentQuestion {
+  id: string
+  questionText: string
+  isRequired: boolean
+}
+
+interface AppointmentTypeDetails {
+  id: string
+  name: string
+  description: string | null
+  duration: number
+  location: string | null
+  questions: AppointmentQuestion[]
+}
+
 export default function BookingPage() {
   const params = useParams()
   const router = useRouter()
@@ -28,7 +44,10 @@ export default function BookingPage() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [slots, setSlots] = useState<Slot[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+  const [isLoadingDetails, setIsLoadingDetails] = useState(true)
+  const [appointmentType, setAppointmentType] = useState<AppointmentTypeDetails | null>(null)
   const [notes, setNotes] = useState('')
+  const [answers, setAnswers] = useState<Record<string, string>>({})
   const [isBooking, setIsBooking] = useState(false)
 
   // Generate week dates
@@ -36,8 +55,35 @@ export default function BookingPage() {
   const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
   useEffect(() => {
+    fetchAppointmentDetails()
+  }, [appointmentTypeId])
+
+  useEffect(() => {
     fetchSlots()
   }, [selectedDate])
+
+  const fetchAppointmentDetails = async () => {
+    setIsLoadingDetails(true)
+    try {
+      const response = await fetch(`/api/appointment-types/${appointmentTypeId}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load appointment details')
+      }
+
+      setAppointmentType(data.appointmentType)
+      const initialAnswers: Record<string, string> = {}
+      data.appointmentType?.questions?.forEach((question: AppointmentQuestion) => {
+        initialAnswers[question.id] = ''
+      })
+      setAnswers(initialAnswers)
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load appointment details')
+    } finally {
+      setIsLoadingDetails(false)
+    }
+  }
 
   const fetchSlots = async () => {
     setIsLoadingSlots(true)
@@ -68,19 +114,50 @@ export default function BookingPage() {
   }
 
   const handleBooking = async () => {
+    if (!appointmentType) {
+      toast.error('Appointment details not loaded')
+      return
+    }
+
     if (!selectedSlot) {
       toast.error('Please select a time slot')
+      return
+    }
+
+    const requiredQuestions = appointmentType.questions.filter((q) => q.isRequired)
+    const missingAnswer = requiredQuestions.find((q) => !answers[q.id]?.trim())
+    if (missingAnswer) {
+      toast.error('Please answer all required questions')
       return
     }
 
     setIsBooking(true)
 
     try {
-      // TODO: Replace with actual booking API when backend is ready
-      setTimeout(() => {
-        toast.success('Booking confirmed!')
-        router.push('/my-bookings')
-      }, 1500)
+      const payload = {
+        appointmentTypeId,
+        startTime: selectedSlot.startTime.toISOString(),
+        endTime: selectedSlot.endTime.toISOString(),
+        notes: notes.trim() || undefined,
+        answers: Object.entries(answers)
+          .filter(([, value]) => value.trim())
+          .map(([questionId, answer]) => ({ questionId, answer })),
+      }
+
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Booking failed')
+      }
+
+      toast.success('Booking confirmed!')
+      router.push(`/confirmation/${data.booking.id}`)
     } catch (error) {
       toast.error('Booking failed. Please try again.')
     } finally {
@@ -94,6 +171,14 @@ export default function BookingPage() {
 
   const goToNextWeek = () => {
     setSelectedDate(addDays(selectedDate, 7))
+  }
+
+  if (isLoadingDetails && !appointmentType) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Spinner size="lg" />
+      </div>
+    )
   }
 
   return (
@@ -111,6 +196,20 @@ export default function BookingPage() {
       <Card>
         <CardHeader>
           <CardTitle>Select Date & Time</CardTitle>
+          {appointmentType && (
+            <div className="mt-2 text-sm text-gray-600">
+              <div className="font-medium text-gray-900">
+                {appointmentType.name}
+              </div>
+              {appointmentType.description && (
+                <p className="mt-1">{appointmentType.description}</p>
+              )}
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge>{appointmentType.duration} min</Badge>
+                {appointmentType.location && <Badge>{appointmentType.location}</Badge>}
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {/* Week Navigation */}
@@ -213,6 +312,24 @@ export default function BookingPage() {
             </div>
           )}
 
+          {/* Questions */}
+          {appointmentType && appointmentType.questions.length > 0 && (
+            <div className="mb-6 space-y-4">
+              <h4 className="font-medium">Booking Questions</h4>
+              {appointmentType.questions.map((question) => (
+                <Input
+                  key={question.id}
+                  label={question.questionText}
+                  value={answers[question.id] || ''}
+                  onChange={(e) =>
+                    setAnswers((prev) => ({ ...prev, [question.id]: e.target.value }))
+                  }
+                  required={question.isRequired}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Booking Summary */}
           {selectedSlot && (
             <div className="bg-gray-50 p-4 rounded-lg mb-6">
@@ -236,6 +353,21 @@ export default function BookingPage() {
           </Button>
         </CardContent>
       </Card>
+
+      <AIChatWidget
+        appointmentTypeId={appointmentTypeId}
+        contextDate={selectedDate}
+        onSelectSlot={(slot) => {
+          setSelectedDate(slot.startTime)
+          setSelectedSlot({
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            available: 1,
+            capacity: 1,
+            isAvailable: true,
+          })
+        }}
+      />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -8,18 +8,20 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Brand from '@/components/Brand'
 import toast from 'react-hot-toast'
 
-export default function VerifyOTPPage() {
+export default function ResetPasswordPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email') || ''
 
   const [otp, setOtp] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (!email) {
-      router.push('/signup')
+      router.push('/forgot-password')
     }
   }, [email, router])
 
@@ -32,52 +34,37 @@ export default function VerifyOTPPage() {
       return
     }
 
-    setIsLoading(true)
-
-    try {
-      const response = await fetch('/api/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Verification failed')
-      }
-
-      toast.success('Email verified successfully!')
-      router.push('/login')
-    } catch (error: any) {
-      setError(error.message || 'Invalid OTP')
-      toast.error(error.message || 'Verification failed')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleResendOTP = async () => {
-    if (!email) {
-      toast.error('Email is missing')
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
       return
     }
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    setIsLoading(true)
+
     try {
-      const response = await fetch('/api/resend-otp', {
+      const response = await fetch('/api/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, otp, password }),
       })
 
       const data = await response.json()
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to resend OTP')
+        throw new Error(data.error || 'Failed to reset password')
       }
 
-      toast.success('OTP sent successfully')
+      toast.success('Password reset successfully!')
+      router.push('/login')
     } catch (error: any) {
-      toast.error(error.message || 'Failed to resend OTP')
+      setError(error.message || 'Failed to reset password')
+      toast.error(error.message || 'Failed to reset password')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -88,24 +75,38 @@ export default function VerifyOTPPage() {
           <div className="flex justify-center mb-4">
             <Brand size={56} showText={false} href="/" />
           </div>
-          <CardTitle className="text-2xl text-center">Verify Your Email</CardTitle>
+          <CardTitle className="text-2xl text-center">Reset Password</CardTitle>
           <p className="text-center text-gray-600 text-sm mt-2">
-            We sent a 6-digit code to <strong>{email}</strong>
+            Enter the OTP sent to <strong>{email}</strong>
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Enter OTP"
+              label="OTP"
               type="text"
               placeholder="123456"
               value={otp}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '').slice(0, 6)
-                setOtp(value)
-              }}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               error={error}
-              maxLength={6}
+              required
+            />
+
+            <Input
+              label="New Password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+
+            <Input
+              label="Confirm Password"
+              type="password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
 
@@ -115,21 +116,13 @@ export default function VerifyOTPPage() {
               className="w-full"
               isLoading={isLoading}
             >
-              Verify Email
+              Reset Password
             </Button>
-
-            <button
-              type="button"
-              onClick={handleResendOTP}
-              className="w-full text-sm text-primary-600 hover:text-primary-700"
-            >
-              Didn't receive code? Resend OTP
-            </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600">
-            <a href="/signup" className="text-primary-600 hover:text-primary-700 font-medium">
-              ← Back to Signup
+            <a href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+              ← Back to Login
             </a>
           </div>
         </CardContent>

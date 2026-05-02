@@ -151,3 +151,50 @@ export async function sendBookingConfirmationEmail(
 
   await transporter.sendMail(mailOptions)
 }
+
+// Send Password Reset OTP Email
+export async function sendPasswordResetEmail(
+  to: string,
+  name: string,
+  otpCode: string
+): Promise<void> {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: 'Reset Your Password - AppointEase',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #2563eb; color: white; padding: 24px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 24px; border-radius: 0 0 10px 10px; }
+          .otp-box { background: white; border: 2px dashed #2563eb; padding: 16px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #2563eb; margin: 16px 0; border-radius: 8px; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Reset Password</h1>
+          </div>
+          <div class="content">
+            <h2>Hello ${name}!</h2>
+            <p>Use the OTP below to reset your password:</p>
+            <div class="otp-box">${otpCode}</div>
+            <p>This OTP expires in 10 minutes.</p>
+            <p>If you did not request a reset, please ignore this email.</p>
+          </div>
+          <div class="footer">
+            <p>© 2024 AppointEase. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  }
+
+  await transporter.sendMail(mailOptions)
+}

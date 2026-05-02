@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import Brand from '@/components/Brand'
 import toast from 'react-hot-toast'
 
 export default function ForgotPasswordPage() {
@@ -27,17 +28,34 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true)
 
-    // TODO: Implement forgot password API
-    setTimeout(() => {
-      toast.success('Password reset link sent to your email!')
+    try {
+      const response = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send reset OTP')
+      }
+
+      toast.success('Reset OTP sent to your email!')
+      window.location.href = `/reset-password?email=${encodeURIComponent(email)}`
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send reset OTP')
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
+          <div className="flex justify-center mb-4">
+            <Brand size={56} showText={false} href="/" />
+          </div>
           <CardTitle className="text-2xl text-center">Forgot Password</CardTitle>
           <p className="text-center text-gray-600 text-sm mt-2">
             Enter your email to receive a password reset link

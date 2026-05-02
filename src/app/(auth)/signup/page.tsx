@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import Brand from '@/components/Brand'
 import toast from 'react-hot-toast'
 
 export default function SignupPage() {
@@ -82,6 +83,9 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
+          <div className="flex justify-center mb-4">
+            <Brand size={56} showText={false} href="/" />
+          </div>
           <CardTitle className="text-2xl text-center">Create Account</CardTitle>
           <p className="text-center text-gray-600 text-sm mt-2">
             Sign up to get started with AppointEase

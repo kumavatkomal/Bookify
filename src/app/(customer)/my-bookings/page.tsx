@@ -5,6 +5,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
+import { Input } from '@/components/ui/Input'
+import { Modal } from '@/components/ui/Modal'
 import { format } from 'date-fns'
 import { Calendar, Clock, MapPin, FileText } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -12,6 +14,7 @@ import toast from 'react-hot-toast'
 interface Booking {
   id: string
   appointmentType: {
+    id: string
     name: string
     location: string | null
   }
@@ -22,10 +25,24 @@ interface Booking {
   notes: string | null
 }
 
+interface Slot {
+  startTime: Date
+  endTime: Date
+  available: number
+  capacity: number
+  isAvailable: boolean
+}
+
 export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming')
+  const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null)
+  const [rescheduleDate, setRescheduleDate] = useState('')
+  const [rescheduleSlots, setRescheduleSlots] = useState<Slot[]>([])
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
     fetchBookings()
@@ -33,39 +50,114 @@ export default function MyBookingsPage() {
 
   const fetchBookings = async () => {
     try {
-      // TODO: Replace with actual API call when backend is ready
-      setTimeout(() => {
-        setBookings([
-          {
-            id: '1',
-            appointmentType: {
-              name: 'General Consultation',
-              location: 'Clinic Room 1',
-            },
-            startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-            endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
-            status: 'CONFIRMED',
-            confirmationCode: 'ABC123',
-            notes: 'First visit',
-          },
-          {
-            id: '2',
-            appointmentType: {
-              name: 'Dental Checkup',
-              location: 'Dental Wing',
-            },
-            startTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-            endTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000),
-            status: 'COMPLETED',
-            confirmationCode: 'XYZ789',
-            notes: null,
-          },
-        ])
-        setIsLoading(false)
-      }, 1000)
+      const response = await fetch('/api/bookings')
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load bookings')
+      }
+
+      const parsed = (data.bookings || []).map((booking: any) => ({
+        ...booking,
+        startTime: new Date(booking.startTime),
+        endTime: new Date(booking.endTime),
+      }))
+
+      setBookings(parsed)
     } catch (error) {
       toast.error('Failed to load bookings')
+    } finally {
       setIsLoading(false)
+    }
+  }
+
+  const openReschedule = (booking: Booking) => {
+    setRescheduleBooking(booking)
+    setSelectedSlot(null)
+    const dateStr = format(booking.startTime, 'yyyy-MM-dd')
+    setRescheduleDate(dateStr)
+    fetchSlots(booking.appointmentType.id, dateStr)
+  }
+
+  const fetchSlots = async (appointmentTypeId: string, date: string) => {
+    setIsLoadingSlots(true)
+    try {
+      const response = await fetch(
+        `/api/slots?appointmentTypeId=${appointmentTypeId}&date=${date}`
+      )
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load slots')
+      }
+
+      setRescheduleSlots(
+        (data.slots || []).map((slot: any) => ({
+          ...slot,
+          startTime: new Date(slot.startTime),
+          endTime: new Date(slot.endTime),
+        }))
+      )
+    } catch (error) {
+      toast.error('Failed to load available slots')
+      setRescheduleSlots([])
+    } finally {
+      setIsLoadingSlots(false)
+    }
+  }
+
+  const handleCancel = async (bookingId: string) => {
+    setIsUpdating(true)
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to cancel booking')
+      }
+
+      toast.success('Booking cancelled')
+      fetchBookings()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to cancel booking')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleReschedule = async () => {
+    if (!rescheduleBooking || !selectedSlot) {
+      toast.error('Select a slot to reschedule')
+      return
+    }
+
+    setIsUpdating(true)
+    try {
+      const response = await fetch(`/api/bookings/${rescheduleBooking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startTime: selectedSlot.startTime.toISOString(),
+          endTime: selectedSlot.endTime.toISOString(),
+        }),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reschedule booking')
+      }
+
+      toast.success('Booking rescheduled')
+      setRescheduleBooking(null)
+      fetchBookings()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reschedule booking')
+    } finally {
+      setIsUpdating(false)
     }
   }
 
@@ -196,10 +288,19 @@ export default function MyBookingsPage() {
 
                 {booking.status === 'CONFIRMED' && booking.startTime > new Date() && (
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openReschedule(booking)}
+                    >
                       Reschedule
                     </Button>
-                    <Button variant="danger" size="sm">
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleCancel(booking.id)}
+                      isLoading={isUpdating}
+                    >
                       Cancel
                     </Button>
                   </div>
@@ -209,6 +310,68 @@ export default function MyBookingsPage() {
           ))}
         </div>
       )}
+
+      <Modal
+        isOpen={Boolean(rescheduleBooking)}
+        onClose={() => setRescheduleBooking(null)}
+        title="Reschedule Booking"
+        size="lg"
+      >
+        {rescheduleBooking && (
+          <div className="space-y-4">
+            <Input
+              label="Select Date"
+              type="date"
+              value={rescheduleDate}
+              onChange={(e) => {
+                setRescheduleDate(e.target.value)
+                fetchSlots(rescheduleBooking.appointmentType.id, e.target.value)
+              }}
+            />
+
+            {isLoadingSlots ? (
+              <div className="flex justify-center py-6">
+                <Spinner />
+              </div>
+            ) : rescheduleSlots.length === 0 ? (
+              <p className="text-sm text-gray-600">No slots available.</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                {rescheduleSlots.map((slot, index) => (
+                  <button
+                    key={index}
+                    onClick={() => slot.isAvailable && setSelectedSlot(slot)}
+                    disabled={!slot.isAvailable}
+                    className={
+                      `p-2 rounded-lg text-sm border transition-colors ${
+                        selectedSlot === slot
+                          ? 'bg-primary-600 text-white border-primary-600'
+                          : 'bg-white border-gray-200'
+                      } ${!slot.isAvailable ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary-500'}`
+                    }
+                  >
+                    {format(slot.startTime, 'HH:mm')}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setRescheduleBooking(null)}>
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleReschedule}
+                isLoading={isUpdating}
+                disabled={!selectedSlot}
+              >
+                Confirm Reschedule
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

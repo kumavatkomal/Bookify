@@ -8,22 +8,54 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Starting database seed...')
 
+  const adminEmail = 'yashodip@bookify.com'
+  const adminPassword = '123123'
+
   // Hash password
   const hashedPassword = await bcrypt.hash('password123', 10)
+  const hashedAdminPassword = await bcrypt.hash(adminPassword, 10)
 
   // Create Admin User
-  const admin = await prisma.user.upsert({
+  const existingOldAdmin = await prisma.user.findUnique({
     where: { email: 'admin@appointease.com' },
-    update: {},
-    create: {
-      name: 'Admin User',
-      email: 'admin@appointease.com',
-      password: hashedPassword,
-      role: 'ADMIN',
-      isVerified: true,
-      isActive: true,
-    },
   })
+  const existingNewAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  })
+
+  let admin
+  if (existingOldAdmin && !existingNewAdmin) {
+    admin = await prisma.user.update({
+      where: { id: existingOldAdmin.id },
+      data: {
+        name: 'Admin User',
+        email: adminEmail,
+        password: hashedAdminPassword,
+        role: 'ADMIN',
+        isVerified: true,
+        isActive: true,
+      },
+    })
+  } else {
+    admin = await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: {
+        name: 'Admin User',
+        password: hashedAdminPassword,
+        role: 'ADMIN',
+        isVerified: true,
+        isActive: true,
+      },
+      create: {
+        name: 'Admin User',
+        email: adminEmail,
+        password: hashedAdminPassword,
+        role: 'ADMIN',
+        isVerified: true,
+        isActive: true,
+      },
+    })
+  }
   console.log('✅ Created admin user:', admin.email)
 
   // Create Organiser User (Yashodip)

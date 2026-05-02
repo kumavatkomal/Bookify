@@ -31,35 +31,17 @@ export default function CustomerDashboard() {
 
   const fetchAppointments = async () => {
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // For now, using mock data
-      setTimeout(() => {
-        setAppointments([
-          {
-            id: '1',
-            name: 'General Consultation',
-            description: 'General health checkup and consultation',
-            duration: 30,
-            location: 'Clinic Room 1',
-            paymentAmount: 500,
-            requiresPayment: true,
-            isPublished: true,
-          },
-          {
-            id: '2',
-            name: 'Dental Checkup',
-            description: 'Routine dental examination',
-            duration: 45,
-            location: 'Dental Wing',
-            paymentAmount: 800,
-            requiresPayment: true,
-            isPublished: true,
-          },
-        ])
-        setIsLoading(false)
-      }, 1000)
+      const response = await fetch('/api/appointment-types?published=true')
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load appointments')
+      }
+
+      setAppointments(data.appointmentTypes || [])
     } catch (error) {
       toast.error('Failed to load appointments')
+    } finally {
       setIsLoading(false)
     }
   }

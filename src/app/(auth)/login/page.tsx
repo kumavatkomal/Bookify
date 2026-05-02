@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { getSession, signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import Brand from '@/components/Brand'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -53,7 +54,16 @@ export default function LoginPage() {
       }
 
       toast.success('Login successful!')
-      router.push('/dashboard')
+      const session = await getSession()
+      const role = session?.user?.role
+
+      if (role === 'ADMIN') {
+        router.push('/admin/dashboard')
+      } else if (role === 'ORGANISER') {
+        router.push('/organiser/dashboard')
+      } else {
+        router.push('/dashboard')
+      }
       router.refresh()
     } catch (error: any) {
       toast.error(error.message || 'Login failed')
@@ -67,6 +77,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
+          <div className="flex justify-center mb-4">
+            <Brand size={56} showText={false} href="/" />
+          </div>
           <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
           <p className="text-center text-gray-600 text-sm mt-2">
             Login to your AppointEase account
