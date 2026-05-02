@@ -1,12 +1,12 @@
 // src/lib/auth.ts
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from './prisma'
 import * as bcrypt from 'bcryptjs'
+import { UserRole } from '@prisma/client'
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // Note: PrismaAdapter removed — not compatible with CredentialsProvider + JWT strategy
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -71,7 +71,7 @@ export const authOptions: NextAuthOptions = {
       // Expose user info to client session
       if (session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string
+        session.user.role = token.role as UserRole
       }
       return session
     }
