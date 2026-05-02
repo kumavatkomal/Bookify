@@ -41,7 +41,7 @@ export default function CustomerLayout({
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-8">
               <Link href="/dashboard" className="text-xl font-bold text-gray-900">
-                AppointEase
+                Buddify
               </Link>
               <nav className="hidden md:flex gap-6">
                 <Link

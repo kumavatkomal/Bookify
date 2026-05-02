@@ -21,7 +21,7 @@ export async function sendOTPEmail(
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to,
-    subject: 'Verify Your Email - AppointEase',
+    subject: 'Verify Your Email - Buddify',
     html: `
       <!DOCTYPE html>
       <html>
@@ -39,12 +39,12 @@ export async function sendOTPEmail(
       <body>
         <div class="container">
           <div class="header">
-            <h1>📅 AppointEase</h1>
+            <h1>📅 Buddify</h1>
             <p>Verify Your Email Address</p>
           </div>
           <div class="content">
             <h2>Hello ${name}! 👋</h2>
-            <p>Thank you for signing up with AppointEase. To complete your registration, please verify your email address using the OTP below:</p>
+            <p>Thank you for signing up with Buddify. To complete your registration, please verify your email address using the OTP below:</p>
             
             <div class="otp-box">
               ${otpCode}
@@ -52,12 +52,12 @@ export async function sendOTPEmail(
             
             <p><strong>This OTP will expire in 10 minutes.</strong></p>
             
-            <p>If you didn't create an account with AppointEase, please ignore this email.</p>
+            <p>If you didn't create an account with Buddify, please ignore this email.</p>
             
-            <p>Best regards,<br>The AppointEase Team</p>
+            <p>Best regards,<br>The Buddify Team</p>
           </div>
           <div class="footer">
-            <p>© 2024 AppointEase. All rights reserved.</p>
+            <p>© 2024 Buddify. All rights reserved.</p>
             <p>Built for Odoo Hackathon @ VIT Pune</p>
           </div>
         </div>
@@ -84,7 +84,7 @@ export async function sendBookingConfirmationEmail(
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to,
-    subject: 'Booking Confirmed - AppointEase',
+    subject: 'Booking Confirmed - Buddify',
     html: `
       <!DOCTYPE html>
       <html>
@@ -138,10 +138,10 @@ export async function sendBookingConfirmationEmail(
             
             <p>Please save this confirmation code for your records.</p>
             
-            <p>Best regards,<br>The AppointEase Team</p>
+            <p>Best regards,<br>The Buddify Team</p>
           </div>
           <div class="footer">
-            <p>© 2024 AppointEase. All rights reserved.</p>
+            <p>© 2024 Buddify. All rights reserved.</p>
           </div>
         </div>
       </body>

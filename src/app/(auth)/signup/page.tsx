@@ -84,7 +84,7 @@ export default function SignupPage() {
         <CardHeader>
           <CardTitle className="text-2xl text-center">Create Account</CardTitle>
           <p className="text-center text-gray-600 text-sm mt-2">
-            Sign up to get started with AppointEase
+            Sign up to get started with Buddify
           </p>
         </CardHeader>
         <CardContent>

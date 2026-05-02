@@ -6,7 +6,7 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AppointEase - Smart Appointment Booking',
+  title: 'Buddify - Smart Appointment Booking',
   description: 'AI-powered appointment booking system with real-time availability',
 }
 
