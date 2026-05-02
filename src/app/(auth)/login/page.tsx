@@ -63,13 +63,13 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/session')
       const session = await res.json()
       
-      // Redirect based on role
+      // Use window.location.href for hard redirect to ensure session loads properly
       if (session?.user?.role === 'ADMIN') {
-        router.push('/admin/dashboard')
+        window.location.href = '/admin/dashboard'
       } else if (session?.user?.role === 'ORGANISER') {
-        router.push('/organiser/dashboard')
+        window.location.href = '/organiser/dashboard'
       } else {
-        router.push('/dashboard')
+        window.location.href = '/dashboard'
       }
     } catch (error: any) {
       toast.error(error.message || 'Login failed')
