@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -9,6 +10,7 @@ import Brand from '@/components/Brand'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -55,21 +57,19 @@ export default function LoginPage() {
         throw new Error('Login failed')
       }
 
-      toast.success('Login successful!')
+      toast.success('Login successful! Redirecting...')
       
-      // Fetch session from API to get role
-      const sessionRes = await fetch('/api/auth/session')
-      const session = await sessionRes.json()
-      
-      const role = session?.user?.role
+      // Fetch session to get role
+      const res = await fetch('/api/auth/session')
+      const session = await res.json()
       
       // Redirect based on role
-      if (role === 'ADMIN') {
-        window.location.href = '/admin/dashboard'
-      } else if (role === 'ORGANISER') {
-        window.location.href = '/organiser/dashboard'
+      if (session?.user?.role === 'ADMIN') {
+        router.push('/admin/dashboard')
+      } else if (session?.user?.role === 'ORGANISER') {
+        router.push('/organiser/dashboard')
       } else {
-        window.location.href = '/dashboard'
+        router.push('/dashboard')
       }
     } catch (error: any) {
       toast.error(error.message || 'Login failed')
