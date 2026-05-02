@@ -17,7 +17,7 @@ async function main() {
 
   // Create Admin User
   const existingOldAdmin = await prisma.user.findUnique({
-    where: { email: 'admin@appointease.com' },
+    where: { email: 'admin@bookify.com' },
   })
   const existingNewAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },

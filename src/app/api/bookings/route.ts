@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
         throw new Error('Slot is fully booked')
       }
 
+      // Determine initial status based on requiresConfirmation
+      const initialStatus = appointmentType.requiresConfirmation ? 'PENDING' : 'CONFIRMED'
+
       // Create the booking
       const newBooking = await tx.booking.create({
         data: {
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
           startTime: start,
           endTime: end,
           notes: notes || null,
-          status: 'CONFIRMED',
+          status: initialStatus,
           answers: answers
             ? {
                 create: answers.map((answer: { questionId: string; answer: string }) => ({
@@ -117,22 +120,26 @@ export async function POST(req: NextRequest) {
       return newBooking
     })
 
-    // Send confirmation email (async, don't wait)
-    sendBookingConfirmationEmail(
-      booking.customer.email,
-      booking.customer.name,
-      {
-        appointmentName: booking.appointmentType.name,
-        date: booking.startTime.toLocaleDateString(),
-        time: `${booking.startTime.toLocaleTimeString()} - ${booking.endTime.toLocaleTimeString()}`,
-        location: booking.appointmentType.location || 'TBD',
-        confirmationCode: booking.confirmationCode,
-      }
-    ).catch((err) => console.error('Email send failed:', err))
+    // Send confirmation email only if booking is confirmed
+    if (booking.status === 'CONFIRMED') {
+      sendBookingConfirmationEmail(
+        booking.customer.email,
+        booking.customer.name,
+        {
+          appointmentName: booking.appointmentType.name,
+          date: booking.startTime.toLocaleDateString(),
+          time: `${booking.startTime.toLocaleTimeString()} - ${booking.endTime.toLocaleTimeString()}`,
+          location: booking.appointmentType.location || 'TBD',
+          confirmationCode: booking.confirmationCode,
+        }
+      ).catch((err) => console.error('Email send failed:', err))
+    }
 
     return NextResponse.json(
       {
-        message: 'Booking created successfully',
+        message: booking.status === 'CONFIRMED' 
+          ? 'Booking created successfully' 
+          : 'Booking created and pending confirmation',
         booking: {
           id: booking.id,
           appointmentType: booking.appointmentType.name,
