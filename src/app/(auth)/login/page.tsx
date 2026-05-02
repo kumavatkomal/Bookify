@@ -54,17 +54,19 @@ export default function LoginPage() {
       }
 
       toast.success('Login successful!')
+      
+      // Get session to determine role
       const session = await getSession()
       const role = session?.user?.role
 
+      // Use window.location for hard redirect to ensure session is loaded
       if (role === 'ADMIN') {
-        router.push('/admin/dashboard')
+        window.location.href = '/admin/dashboard'
       } else if (role === 'ORGANISER') {
-        router.push('/organiser/dashboard')
+        window.location.href = '/organiser/dashboard'
       } else {
-        router.push('/dashboard')
+        window.location.href = '/dashboard'
       }
-      router.refresh()
     } catch (error: any) {
       toast.error(error.message || 'Login failed')
       setErrors({ password: error.message })
@@ -82,7 +84,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
           <p className="text-center text-gray-600 text-sm mt-2">
-            Login to your AppointEase account
+            Login to your Buddify account
           </p>
         </CardHeader>
         <CardContent>
