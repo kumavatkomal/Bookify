@@ -2,7 +2,7 @@
 
 > **⚠️ IMPORTANT**: Never commit `.env.local` to Git! This file contains sensitive credentials.
 
-This guide walks you through obtaining all required API keys, secrets, and credentials for the AppointEase project.
+This guide walks you through obtaining all required API keys, secrets, and credentials for the Bookify project.
 
 ---
 
@@ -31,9 +31,9 @@ This guide walks you through obtaining all required API keys, secrets, and crede
 | `EMAIL_SECURE` | Use TLS | ✅ Yes | false (Gmail) |
 | `EMAIL_USER` | Email address | ✅ Yes | Your Gmail |
 | `EMAIL_PASS` | Email password | ✅ Yes | Gmail App Password |
-| `EMAIL_FROM` | Sender name | ✅ Yes | "AppointEase <your@email.com>" |
+| `EMAIL_FROM` | Sender name | ✅ Yes | "Bookify <your@email.com>" |
 | `NEXT_PUBLIC_APP_URL` | Public app URL | ⚠️ Optional | Same as NEXTAUTH_URL |
-| `NEXT_PUBLIC_APP_NAME` | App display name | ⚠️ Optional | "AppointEase" |
+| `NEXT_PUBLIC_APP_NAME` | App display name | ⚠️ Optional | "Bookify" |
 
 ---
 
@@ -184,7 +184,7 @@ GROQ_API_KEY="gsk_abc123def456ghi789jkl012mno345pqr678stu901vwx234yz"
 4. You might need to sign in again
 5. In the "Select app" dropdown, choose **"Mail"**
 6. In the "Select device" dropdown, choose **"Other (Custom name)"**
-7. Type: `AppointEase Hackathon`
+7. Type: `Bookify Hackathon`
 8. Click **"Generate"**
 9. **IMPORTANT**: Copy the 16-character password (no spaces)
    - Example: `abcd efgh ijkl mnop` → use as `abcdefghijklmnop`
@@ -196,7 +196,7 @@ EMAIL_PORT="587"
 EMAIL_SECURE="false"
 EMAIL_USER="your.email@gmail.com"
 EMAIL_PASS="abcdefghijklmnop"
-EMAIL_FROM="AppointEase <your.email@gmail.com>"
+EMAIL_FROM="Bookify <your.email@gmail.com>"
 ```
 
 ### Complete Gmail Example
@@ -206,7 +206,7 @@ EMAIL_PORT="587"
 EMAIL_SECURE="false"
 EMAIL_USER="yashodipmore2004@gmail.com"
 EMAIL_PASS="xyzw abcd efgh ijkl"
-EMAIL_FROM="AppointEase <yashodipmore2004@gmail.com>"
+EMAIL_FROM="Bookify <yashodipmore2004@gmail.com>"
 ```
 
 ### Troubleshooting
@@ -245,7 +245,7 @@ EMAIL_PORT="465"
 EMAIL_SECURE="true"
 EMAIL_USER="resend"
 EMAIL_PASS="re_your_resend_api_key_here"
-EMAIL_FROM="AppointEase <onboarding@resend.dev>"
+EMAIL_FROM="Bookify <onboarding@resend.dev>"
 ```
 
 ### Complete Resend Example
@@ -255,7 +255,7 @@ EMAIL_PORT="465"
 EMAIL_SECURE="true"
 EMAIL_USER="resend"
 EMAIL_PASS="re_abc123def456"
-EMAIL_FROM="AppointEase <onboarding@resend.dev>"
+EMAIL_FROM="Bookify <onboarding@resend.dev>"
 ```
 
 ### Note on Sender Email
@@ -298,7 +298,7 @@ EMAIL_PORT="587"
 EMAIL_SECURE="false"
 EMAIL_USER="your.email@gmail.com"
 EMAIL_PASS="your_16char_app_password"
-EMAIL_FROM="AppointEase <your.email@gmail.com>"
+EMAIL_FROM="Bookify <your.email@gmail.com>"
 
 # ─────────────────────────────────────────────
 # EMAIL (Resend Alternative)
@@ -309,13 +309,13 @@ EMAIL_FROM="AppointEase <your.email@gmail.com>"
 # EMAIL_SECURE="true"
 # EMAIL_USER="resend"
 # EMAIL_PASS="re_your_resend_api_key"
-# EMAIL_FROM="AppointEase <onboarding@resend.dev>"
+# EMAIL_FROM="Bookify <onboarding@resend.dev>"
 
 # ─────────────────────────────────────────────
 # APP CONFIG (Optional)
 # ─────────────────────────────────────────────
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_APP_NAME="AppointEase"
+NEXT_PUBLIC_APP_NAME="Bookify"
 ```
 
 ---

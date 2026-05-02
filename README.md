@@ -1,4 +1,4 @@
-# 📅 AppointEase - The Perfect Booking System
+# 📅 Bookify - The Perfect Booking System
 
 <div align="center">
 

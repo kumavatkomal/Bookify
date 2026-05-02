@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Brand from '@/components/Brand'
 import toast from 'react-hot-toast'
 
-export default function VerifyOTPPage() {
+function VerifyOTPContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email') || ''
@@ -135,5 +135,14 @@ export default function VerifyOTPPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+
+export default function VerifyOTPPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <VerifyOTPContent />
+    </Suspense>
   )
 }

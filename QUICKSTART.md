@@ -7,7 +7,7 @@
 
 ## 🎯 What We're Building
 
-**AppointEase** - An appointment booking system with:
+**Bookify** - An appointment booking system with:
 - 🤖 **AI-powered slot suggestions** (Groq llama-3.3-70b)
 - 🔒 **Real-time double-booking prevention** (PostgreSQL locking)
 - 📧 **Complete email lifecycle** (OTP, confirmations, reminders)
