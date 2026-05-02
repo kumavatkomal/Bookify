@@ -1,0 +1,163 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CUSTOMER
+  ORGANISER
+  ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  RESCHEDULED
+}
+
+enum SlotScheduleType {
+  WEEKLY
+  FLEXIBLE
+}
+
+enum AssignmentType {
+  AUTO
+  MANUAL
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  password     String
+  role         UserRole  @default(CUSTOMER)
+  isActive     Boolean   @default(true)
+  otpCode      String?
+  otpExpiry    DateTime?
+  isVerified   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  bookingsAsCustomer Booking[]         @relation("CustomerBookings")
+  appointmentTypes   AppointmentType[] @relation("OrganiserAppointments")
+  providerSlots      ProviderSlot[]
+
+  @@map("users")
+}
+
+model AppointmentType {
+  id                   String           @id @default(cuid())
+  name                 String
+  description          String?
+  duration             Int              // minutes
+  isPublished          Boolean          @default(false)
+  shareToken           String           @unique @default(cuid())
+  maxBookingsPerSlot   Int              @default(1)
+  requiresPayment      Boolean          @default(false)
+  paymentAmount        Float?
+  requiresConfirmation Boolean          @default(false)
+  scheduleType         SlotScheduleType @default(WEEKLY)
+  assignmentType       AssignmentType   @default(AUTO)
+  location             String?
+  organiserId          String
+  organiser            User             @relation("OrganiserAppointments", fields: [organiserId], references: [id])
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  bookings         Booking[]
+  providers        AppointmentTypeProvider[]
+  questions        Question[]
+  weeklySchedules  WeeklySchedule[]
+
+  @@map("appointment_types")
+}
+
+model AppointmentTypeProvider {
+  id                String          @id @default(cuid())
+  appointmentTypeId String
+  appointmentType   AppointmentType @relation(fields: [appointmentTypeId], references: [id], onDelete: Cascade)
+  providerId        String
+  provider          ProviderSlot    @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([appointmentTypeId, providerId])
+  @@map("appointment_type_providers")
+}
+
+model ProviderSlot {
+  id       String  @id @default(cuid())
+  name     String
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id])
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  appointmentTypes AppointmentTypeProvider[]
+  bookings         Booking[]
+
+  @@map("provider_slots")
+}
+
+model WeeklySchedule {
+  id                String          @id @default(cuid())
+  appointmentTypeId String
+  appointmentType   AppointmentType @relation(fields: [appointmentTypeId], references: [id], onDelete: Cascade)
+  dayOfWeek         Int             // 0=Sun … 6=Sat
+  startTime         String          // "09:00"
+  endTime           String          // "17:00"
+
+  @@map("weekly_schedules")
+}
+
+model Booking {
+  id                String            @id @default(cuid())
+  appointmentTypeId String
+  appointmentType   AppointmentType   @relation(fields: [appointmentTypeId], references: [id])
+  customerId        String
+  customer          User              @relation("CustomerBookings", fields: [customerId], references: [id])
+  providerId        String?
+  provider          ProviderSlot?     @relation(fields: [providerId], references: [id])
+  startTime         DateTime
+  endTime           DateTime
+  status            AppointmentStatus @default(PENDING)
+  capacity          Int               @default(1)
+  notes             String?
+  confirmationCode  String            @unique @default(cuid())
+  isPaid            Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  answers BookingAnswer[]
+
+  @@map("bookings")
+}
+
+model Question {
+  id                String          @id @default(cuid())
+  appointmentTypeId String
+  appointmentType   AppointmentType @relation(fields: [appointmentTypeId], references: [id], onDelete: Cascade)
+  questionText      String
+  isRequired        Boolean         @default(false)
+  order             Int             @default(0)
+
+  answers BookingAnswer[]
+
+  @@map("questions")
+}
+
+model BookingAnswer {
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  answer     String
+
+  @@map("booking_answers")
+}

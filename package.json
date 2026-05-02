@@ -1,0 +1,34 @@
+{
+  "name": "bookify",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kumavatkomal/Bookify.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kumavatkomal/Bookify/issues"
+  },
+  "homepage": "https://github.com/kumavatkomal/Bookify#readme",
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "prisma": "^7.8.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "pg": "^8.20.0",
+    "ts-node": "^10.9.2"
+  }
+}
