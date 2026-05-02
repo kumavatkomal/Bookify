@@ -1,7 +1,7 @@
 // src/lib/email.ts
 import nodemailer from 'nodemailer'
 
-// Create transporter
+// Create transporter with connection pooling for better performance
 export const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: Number(process.env.EMAIL_PORT),
@@ -10,6 +10,14 @@ export const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  pool: true, // Enable connection pooling
+  maxConnections: 5, // Max concurrent connections
+  maxMessages: 100, // Max messages per connection
+  rateDelta: 1000, // Time window for rate limiting (1 second)
+  rateLimit: 5, // Max messages per rateDelta
+  connectionTimeout: 10000, // 10 seconds connection timeout
+  greetingTimeout: 5000, // 5 seconds greeting timeout
+  socketTimeout: 15000, // 15 seconds socket timeout
 })
 
 // Send OTP Email
@@ -21,7 +29,7 @@ export async function sendOTPEmail(
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to,
-    subject: 'Verify Your Email - AppointEase',
+    subject: 'Verify Your Email - Buddify',
     html: `
       <!DOCTYPE html>
       <html>
@@ -39,12 +47,12 @@ export async function sendOTPEmail(
       <body>
         <div class="container">
           <div class="header">
-            <h1>📅 AppointEase</h1>
+            <h1>📅 Buddify</h1>
             <p>Verify Your Email Address</p>
           </div>
           <div class="content">
             <h2>Hello ${name}! 👋</h2>
-            <p>Thank you for signing up with AppointEase. To complete your registration, please verify your email address using the OTP below:</p>
+            <p>Thank you for signing up with Buddify. To complete your registration, please verify your email address using the OTP below:</p>
             
             <div class="otp-box">
               ${otpCode}
@@ -52,12 +60,12 @@ export async function sendOTPEmail(
             
             <p><strong>This OTP will expire in 10 minutes.</strong></p>
             
-            <p>If you didn't create an account with AppointEase, please ignore this email.</p>
+            <p>If you didn't create an account with Buddify, please ignore this email.</p>
             
-            <p>Best regards,<br>The AppointEase Team</p>
+            <p>Best regards,<br>The Buddify Team</p>
           </div>
           <div class="footer">
-            <p>© 2024 AppointEase. All rights reserved.</p>
+            <p>© 2024 Buddify. All rights reserved.</p>
             <p>Built for Odoo Hackathon @ VIT Pune</p>
           </div>
         </div>
@@ -84,7 +92,7 @@ export async function sendBookingConfirmationEmail(
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to,
-    subject: 'Booking Confirmed - AppointEase',
+    subject: 'Booking Confirmed - Buddify',
     html: `
       <!DOCTYPE html>
       <html>
@@ -138,10 +146,10 @@ export async function sendBookingConfirmationEmail(
             
             <p>Please save this confirmation code for your records.</p>
             
-            <p>Best regards,<br>The AppointEase Team</p>
+            <p>Best regards,<br>The Buddify Team</p>
           </div>
           <div class="footer">
-            <p>© 2024 AppointEase. All rights reserved.</p>
+            <p>© 2024 Buddify. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -161,7 +169,7 @@ export async function sendPasswordResetEmail(
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to,
-    subject: 'Reset Your Password - AppointEase',
+    subject: 'Reset Your Password - Buddify',
     html: `
       <!DOCTYPE html>
       <html>
@@ -188,7 +196,7 @@ export async function sendPasswordResetEmail(
             <p>If you did not request a reset, please ignore this email.</p>
           </div>
           <div class="footer">
-            <p>© 2024 AppointEase. All rights reserved.</p>
+            <p>© 2024 Buddify. All rights reserved.</p>
           </div>
         </div>
       </body>
