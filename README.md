@@ -1,4 +1,4 @@
-# 📅 AppointEase - The Perfect Booking System
+# 📅 Buddify - AI-Powered Appointment Booking System
 
 <div align="center">
 
