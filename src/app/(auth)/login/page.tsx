@@ -59,19 +59,41 @@ export default function LoginPage() {
 
       toast.success('Login successful! Redirecting...')
       
+      // Small delay to ensure session cookie is set
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       // Fetch session to get role
       const res = await fetch('/api/auth/session')
+      
+      if (!res.ok) {
+        console.error('Session fetch failed:', res.status)
+        throw new Error('Failed to fetch session')
+      }
+      
       const session = await res.json()
+      console.log('Session data:', session)
+      
+      if (!session?.user) {
+        console.error('No user in session')
+        throw new Error('Session not found. Please try again.')
+      }
+      
+      const role = session.user.role
+      console.log('User role:', role)
       
       // Use window.location.href for hard redirect to ensure session loads properly
-      if (session?.user?.role === 'ADMIN') {
+      if (role === 'ADMIN') {
+        console.log('Redirecting to admin dashboard')
         window.location.href = '/admin/dashboard'
-      } else if (session?.user?.role === 'ORGANISER') {
+      } else if (role === 'ORGANISER') {
+        console.log('Redirecting to organiser dashboard')
         window.location.href = '/organiser/dashboard'
       } else {
+        console.log('Redirecting to customer dashboard')
         window.location.href = '/dashboard'
       }
     } catch (error: any) {
+      console.error('Login error:', error)
       toast.error(error.message || 'Login failed')
       setErrors({ password: error.message })
       setIsLoading(false)
