@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { generateSlotsForRange } from '@/lib/slots'
 import { getGroqSlotSuggestion } from '@/lib/groq'
 
+// Mark route as dynamic
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
