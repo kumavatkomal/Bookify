@@ -23,8 +23,8 @@
 
 | Name | Role | GitHub |
 |------|------|--------|
-| **Yashodip More** | Full Stack Developer (Lead) | [@yashodip-more](#) |
-| **Komal Kumavat** | Frontend Developer | [@komal-kumavat](#) |
+| **Yashodip More** | Full Stack Developer (Lead) | [@yashodipmore](https://github.com/yashodipmore) |
+| **Komal Kumavat** | Frontend Developer | [@kumavatkomal](https://github.com/kumavatkomal) |
 
 ---
 
@@ -231,7 +231,7 @@ appointment-app/
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/your-team/appointment-app.git
+git clone https://github.com/yashodipmore/appointment-app.git
 cd appointment-app
 ```
 
@@ -421,8 +421,8 @@ This project is built for the Odoo Hackathon @ VIT Pune.
 ## 📞 Contact
 
 **Team Sarthak**
-- Yashodip More - [GitHub](#) | [LinkedIn](#)
-- Komal Kumavat - [GitHub](#) | [LinkedIn](#)
+- Yashodip More - [GitHub](https://github.com/yashodipmore) | yashodipmore2004@gmail.com
+- Komal Kumavat - [GitHub](https://github.com/kumavatkomal) | komalkumavat025@gmail.com
 
 ---
 

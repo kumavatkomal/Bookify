@@ -204,9 +204,9 @@ EMAIL_FROM="AppointEase <your.email@gmail.com>"
 EMAIL_HOST="smtp.gmail.com"
 EMAIL_PORT="587"
 EMAIL_SECURE="false"
-EMAIL_USER="yashodip.more@gmail.com"
+EMAIL_USER="yashodipmore2004@gmail.com"
 EMAIL_PASS="xyzw abcd efgh ijkl"
-EMAIL_FROM="AppointEase <yashodip.more@gmail.com>"
+EMAIL_FROM="AppointEase <yashodipmore2004@gmail.com>"
 ```
 
 ### Troubleshooting
