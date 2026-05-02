@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -10,7 +9,6 @@ import Brand from '@/components/Brand'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -43,57 +41,20 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
+      // Use signIn with redirect to our custom redirect API
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
-        redirect: false,
+        callbackUrl: '/api/auth/redirect',
+        redirect: true, // Let NextAuth handle redirect
       })
 
+      // This code won't execute if redirect is true
+      // But keeping it as fallback
       if (result?.error) {
         throw new Error(result.error)
       }
-
-      if (!result?.ok) {
-        throw new Error('Login failed')
-      }
-
-      toast.success('Login successful! Redirecting...')
-      
-      // Small delay to ensure session cookie is set
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Fetch session to get role
-      const res = await fetch('/api/auth/session')
-      
-      if (!res.ok) {
-        console.error('Session fetch failed:', res.status)
-        throw new Error('Failed to fetch session')
-      }
-      
-      const session = await res.json()
-      console.log('Session data:', session)
-      
-      if (!session?.user) {
-        console.error('No user in session')
-        throw new Error('Session not found. Please try again.')
-      }
-      
-      const role = session.user.role
-      console.log('User role:', role)
-      
-      // Use window.location.href for hard redirect to ensure session loads properly
-      if (role === 'ADMIN') {
-        console.log('Redirecting to admin dashboard')
-        window.location.href = '/admin/dashboard'
-      } else if (role === 'ORGANISER') {
-        console.log('Redirecting to organiser dashboard')
-        window.location.href = '/organiser/dashboard'
-      } else {
-        console.log('Redirecting to customer dashboard')
-        window.location.href = '/dashboard'
-      }
     } catch (error: any) {
-      console.error('Login error:', error)
       toast.error(error.message || 'Login failed')
       setErrors({ password: error.message })
       setIsLoading(false)
