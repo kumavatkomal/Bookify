@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import { format } from 'date-fns'
@@ -26,6 +27,7 @@ export default function AppointmentBookingsPage() {
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [reminderId, setReminderId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchBookings()
@@ -51,6 +53,28 @@ export default function AppointmentBookingsPage() {
       toast.error(error.message || 'Failed to load bookings')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const sendReminder = async (bookingId: string) => {
+    setReminderId(bookingId)
+    try {
+      const response = await fetch('/api/ai/reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId }),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send reminder')
+      }
+
+      toast.success('Reminder sent')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send reminder')
+    } finally {
+      setReminderId(null)
     }
   }
 
@@ -89,7 +113,19 @@ export default function AppointmentBookingsPage() {
                     </p>
                     <p className="text-sm text-gray-500">Code: {booking.confirmationCode}</p>
                   </div>
-                  <Badge variant="info">{booking.status}</Badge>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge variant="info">{booking.status}</Badge>
+                    {booking.startTime > new Date() && booking.status !== 'CANCELLED' && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        isLoading={reminderId === booking.id}
+                        onClick={() => sendReminder(booking.id)}
+                      >
+                        Send Reminder
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

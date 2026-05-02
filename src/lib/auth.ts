@@ -19,41 +19,50 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password required')
         }
 
-        // Find user by email
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        })
+        try {
+          // Find user by email
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email }
+          })
 
-        if (!user) {
-          throw new Error('Invalid email or password')
-        }
+          if (!user) {
+            throw new Error('Invalid email or password')
+          }
 
-        // Check if user is verified
-        if (!user.isVerified) {
-          throw new Error('Please verify your email first')
-        }
+          // Check if user is verified
+          if (!user.isVerified) {
+            throw new Error('Please verify your email first')
+          }
 
-        // Check if user is active
-        if (!user.isActive) {
-          throw new Error('Your account has been deactivated')
-        }
+          // Check if user is active
+          if (!user.isActive) {
+            throw new Error('Your account has been deactivated')
+          }
 
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
+          // Verify password
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          )
 
-        if (!isPasswordValid) {
-          throw new Error('Invalid email or password')
-        }
+          if (!isPasswordValid) {
+            throw new Error('Invalid email or password')
+          }
 
-        // Return user object (will be stored in JWT)
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
+          // Return user object (will be stored in JWT)
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          }
+        } catch (error: any) {
+          console.error('Auth error:', error)
+          // If it's a Prisma error, throw a generic message
+          if (error.code || error.message?.includes('prisma')) {
+            throw new Error('Database connection error. Please try again.')
+          }
+          throw error
         }
       }
     })

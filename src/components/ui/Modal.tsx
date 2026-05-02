@@ -39,20 +39,20 @@ export function Modal({ isOpen, onClose, children, title, size = 'md' }: ModalPr
       <div className="flex min-h-screen items-center justify-center p-4">
         {/* Backdrop */}
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+          className="fixed inset-0 bg-gradient-to-br from-slate-900/60 via-purple-900/30 to-slate-900/60 backdrop-blur-sm transition-opacity"
           onClick={onClose}
         />
         
         {/* Modal */}
         <div
           className={clsx(
-            'relative bg-white rounded-lg shadow-xl w-full',
+            'relative w-full rounded-2xl border border-slate-200/70 bg-white/95 shadow-2xl shadow-slate-900/20 backdrop-blur',
             sizes[size]
           )}
         >
           {/* Header */}
           {title && (
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between border-b border-slate-200/70 p-6">
               <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
               <button
                 onClick={onClose}

@@ -72,12 +72,14 @@ export async function POST(req: NextRequest) {
       timezone,
     })
 
-    const index =
-      suggestion.index !== null && suggestion.index < slotSummaries.length
-        ? suggestion.index
-        : 0
+    if (suggestion.index === null || suggestion.index >= slotSummaries.length) {
+      return NextResponse.json(
+        { error: suggestion.response || 'No suitable slot found' },
+        { status: 404 }
+      )
+    }
 
-    const slot = slotSummaries[index]
+    const slot = slotSummaries[suggestion.index]
 
     return NextResponse.json({
       slot,

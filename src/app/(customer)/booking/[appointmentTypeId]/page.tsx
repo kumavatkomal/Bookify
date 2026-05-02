@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Spinner } from '@/components/ui/Spinner'
 import { Badge } from '@/components/ui/Badge'
-import AIChatWidget from '@/components/ai/AIChatWidget'
+import BookingAssistantPanel from '@/components/ai/BookingAssistantPanel'
 import { format, addDays, startOfWeek } from 'date-fns'
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -113,33 +113,49 @@ export default function BookingPage() {
     }
   }
 
-  const handleBooking = async () => {
+  const handleBooking = async (overrides?: {
+    notes?: string
+    answers?: Record<string, string>
+    slot?: Slot | null
+  }): Promise<boolean> => {
     if (!appointmentType) {
       toast.error('Appointment details not loaded')
-      return
+      return false
     }
 
-    if (!selectedSlot) {
+    const slotToBook = overrides?.slot ?? selectedSlot
+
+    if (!slotToBook) {
       toast.error('Please select a time slot')
-      return
+      return false
+    }
+
+    const mergedAnswers = {
+      ...answers,
+      ...(overrides?.answers ?? {}),
     }
 
     const requiredQuestions = appointmentType.questions.filter((q) => q.isRequired)
-    const missingAnswer = requiredQuestions.find((q) => !answers[q.id]?.trim())
+    const missingAnswer = requiredQuestions.find((q) => !mergedAnswers[q.id]?.trim())
     if (missingAnswer) {
       toast.error('Please answer all required questions')
-      return
+      return false
     }
+
+    const notesToUse = overrides?.notes !== undefined ? overrides.notes : notes
 
     setIsBooking(true)
 
     try {
       const payload = {
         appointmentTypeId,
-        startTime: selectedSlot.startTime.toISOString(),
-        endTime: selectedSlot.endTime.toISOString(),
-        notes: notes.trim() || undefined,
-        answers: Object.entries(answers)
+        startTime: slotToBook.startTime.toISOString(),
+        endTime: slotToBook.endTime.toISOString(),
+        notes:
+          typeof notesToUse === 'string' && notesToUse.trim()
+            ? notesToUse.trim()
+            : undefined,
+        answers: Object.entries(mergedAnswers)
           .filter(([, value]) => value.trim())
           .map(([questionId, answer]) => ({ questionId, answer })),
       }
@@ -158,8 +174,10 @@ export default function BookingPage() {
 
       toast.success('Booking confirmed!')
       router.push(`/confirmation/${data.booking.id}`)
+      return true
     } catch (error) {
-      toast.error('Booking failed. Please try again.')
+      toast.error(error instanceof Error ? error.message : 'Booking failed. Please try again.')
+      return false
     } finally {
       setIsBooking(false)
     }
@@ -182,7 +200,7 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <div className="mb-6">
         <Button
           variant="outline"
@@ -193,7 +211,8 @@ export default function BookingPage() {
         </Button>
       </div>
 
-      <Card>
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <Card>
         <CardHeader>
           <CardTitle>Select Date & Time</CardTitle>
           {appointmentType && (
@@ -352,22 +371,35 @@ export default function BookingPage() {
             Confirm Booking
           </Button>
         </CardContent>
-      </Card>
+        </Card>
 
-      <AIChatWidget
-        appointmentTypeId={appointmentTypeId}
-        contextDate={selectedDate}
-        onSelectSlot={(slot) => {
-          setSelectedDate(slot.startTime)
-          setSelectedSlot({
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            available: 1,
-            capacity: 1,
-            isAvailable: true,
-          })
-        }}
-      />
+        <div className="lg:sticky lg:top-6 h-fit">
+          <BookingAssistantPanel
+            appointmentTypeId={appointmentTypeId}
+            contextDate={selectedDate}
+            questions={appointmentType?.questions || []}
+            onSelectSlot={(slot) => {
+              setSelectedDate(slot.startTime)
+              setSelectedSlot({
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+                available: 1,
+                capacity: 1,
+                isAvailable: true,
+              })
+            }}
+            onApplyAnswers={(updates) =>
+              setAnswers((prev) => ({
+                ...prev,
+                ...updates,
+              }))
+            }
+            onApplyNotes={(nextNotes) => setNotes(nextNotes)}
+            onSubmitBooking={(payload) => handleBooking(payload)}
+            isBooking={isBooking}
+          />
+        </div>
+      </div>
     </div>
   )
 }

@@ -62,8 +62,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
+    <div className="relative min-h-screen bg-gray-100 px-4 overflow-hidden">
+      <div className="absolute inset-0 bg-[url('/background.png')] bg-cover bg-center opacity-30" aria-hidden="true" />
+      <div className="relative z-10 flex min-h-screen items-center justify-center">
+        <Card className="w-full max-w-md bg-white from-white via-white to-white">
         <CardHeader>
           <div className="flex justify-center mb-4">
             <Brand size={56} showText={false} href="/" />
@@ -121,7 +123,8 @@ export default function LoginPage() {
             </a>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }

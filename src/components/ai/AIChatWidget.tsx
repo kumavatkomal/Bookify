@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { MessageSquare, Send, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -17,25 +18,134 @@ interface ChatMessage {
   content: string
 }
 
+interface AppointmentQuestion {
+  id: string
+  questionText: string
+  isRequired: boolean
+}
+
 interface AIChatWidgetProps {
   appointmentTypeId: string
   contextDate?: Date
   onSelectSlot: (slot: SuggestedSlot) => void
+  questions?: AppointmentQuestion[]
 }
 
 export default function AIChatWidget({
   appointmentTypeId,
   contextDate,
   onSelectSlot,
+  questions = [],
 }: AIChatWidgetProps) {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isSending, setIsSending] = useState(false)
   const [suggestedSlot, setSuggestedSlot] = useState<SuggestedSlot | null>(null)
+  const [stage, setStage] = useState<'idle' | 'collecting' | 'booking' | 'done'>('idle')
+  const [questionIndex, setQuestionIndex] = useState(0)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+
+  const askQuestion = (question: AppointmentQuestion) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: 'assistant',
+        content: `${question.questionText}${question.isRequired ? ' *' : ''}`,
+      },
+    ])
+  }
+
+  const bookFromChat = async (slot: SuggestedSlot, answerMap: Record<string, string>) => {
+    setIsSending(true)
+    setStage('booking')
+
+    try {
+      const payload = {
+        appointmentTypeId,
+        startTime: slot.startTime.toISOString(),
+        endTime: slot.endTime.toISOString(),
+        answers: Object.entries(answerMap)
+          .filter(([, value]) => value.trim())
+          .map(([questionId, answer]) => ({ questionId, answer })),
+      }
+
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Booking failed')
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: 'Booked successfully! Taking you to confirmation now.',
+        },
+      ])
+      setStage('done')
+      router.push(`/confirmation/${data.booking.id}`)
+    } catch (error: any) {
+      toast.error(error.message || 'Booking failed')
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: 'I could not complete the booking. Please try again.',
+        },
+      ])
+      setStage('idle')
+    } finally {
+      setIsSending(false)
+    }
+  }
 
   const handleSend = async () => {
     if (!input.trim() || isSending) return
+
+    if (stage === 'collecting') {
+      const activeQuestion = questions[questionIndex]
+      if (!activeQuestion) {
+        setStage('idle')
+      } else {
+        if (activeQuestion.isRequired && !input.trim()) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: 'This question is required. Please share a quick answer.',
+            },
+          ])
+          return
+        }
+        const nextAnswers = { ...answers, [activeQuestion.id]: input.trim() }
+        const nextMessages: ChatMessage[] = [
+          ...messages,
+          { role: 'user', content: input },
+        ]
+
+        setMessages(nextMessages)
+        setInput('')
+        setAnswers(nextAnswers)
+
+        const nextIndex = questionIndex + 1
+        if (nextIndex < questions.length) {
+          setQuestionIndex(nextIndex)
+          askQuestion(questions[nextIndex])
+        } else if (suggestedSlot) {
+          await bookFromChat(suggestedSlot, nextAnswers)
+        }
+
+        return
+      }
+    }
 
     const nextMessages: ChatMessage[] = [
       ...messages,
@@ -45,6 +155,9 @@ export default function AIChatWidget({
     setInput('')
     setIsSending(true)
     setSuggestedSlot(null)
+    setStage('idle')
+    setQuestionIndex(0)
+    setAnswers({})
 
     try {
       const response = await fetch('/api/ai/suggest', {
@@ -54,6 +167,7 @@ export default function AIChatWidget({
           appointmentTypeId,
           message: input,
           date: contextDate ? format(contextDate, 'yyyy-MM-dd') : undefined,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       })
 
@@ -68,13 +182,27 @@ export default function AIChatWidget({
       }
 
       setSuggestedSlot(slot)
+      onSelectSlot(slot)
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: data.response || 'Suggested slot is ready.',
+          content:
+            data.response ||
+            `I found a slot on ${format(slot.startTime, 'MMM d')} at ${format(
+              slot.startTime,
+              'HH:mm'
+            )}. I will ask a few questions to book it.`,
         },
       ])
+
+      if (questions.length > 0) {
+        setStage('collecting')
+        setQuestionIndex(0)
+        askQuestion(questions[0])
+      } else {
+        await bookFromChat(slot, {})
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to get AI suggestion')
       setMessages((prev) => [

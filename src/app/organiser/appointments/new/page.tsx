@@ -33,6 +33,8 @@ export default function NewAppointmentPage() {
   ])
   const [questions, setQuestions] = useState<Question[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [isDrafting, setIsDrafting] = useState(false)
 
   const addSchedule = () => {
     setWeeklySchedules((prev) => [
@@ -112,6 +114,68 @@ export default function NewAppointmentPage() {
     }
   }
 
+  const handleDraft = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error('Describe the appointment to draft')
+      return
+    }
+
+    setIsDrafting(true)
+
+    try {
+      const response = await fetch('/api/ai/appointment-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: aiPrompt.trim(),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate draft')
+      }
+
+      const draft = data.draft || {}
+      if (draft.name) setName(draft.name)
+      if (draft.description !== undefined) setDescription(draft.description || '')
+      if (draft.duration) setDuration(Number(draft.duration) || 30)
+      if (draft.location !== undefined) setLocation(draft.location || '')
+      if (typeof draft.requiresPayment === 'boolean') {
+        setRequiresPayment(draft.requiresPayment)
+      }
+      if (draft.paymentAmount !== undefined) {
+        setPaymentAmount(Number(draft.paymentAmount) || 0)
+      }
+      if (Array.isArray(draft.questions)) {
+        setQuestions(
+          draft.questions
+            .filter((question: Question) => question.questionText)
+            .map((question: Question) => ({
+              questionText: question.questionText,
+              isRequired: Boolean(question.isRequired),
+            }))
+        )
+      }
+      if (Array.isArray(draft.weeklySchedules) && draft.weeklySchedules.length > 0) {
+        setWeeklySchedules(
+          draft.weeklySchedules.map((schedule: WeeklySchedule) => ({
+            dayOfWeek: Number(schedule.dayOfWeek ?? 1),
+            startTime: schedule.startTime || '09:00',
+            endTime: schedule.endTime || '17:00',
+          }))
+        )
+      }
+
+      toast.success('AI draft applied')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to generate draft')
+    } finally {
+      setIsDrafting(false)
+    }
+  }
+
   return (
     <div className="max-w-3xl mx-auto">
       <Card>
@@ -120,6 +184,24 @@ export default function NewAppointmentPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">AI Draft</h3>
+              <p className="text-xs text-gray-600 mt-1">
+                Describe the appointment and let AI fill the details.
+              </p>
+              <textarea
+                className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                rows={3}
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="Example: 45-min product onboarding for SaaS teams, includes prep checklist and follow-up tips."
+              />
+              <div className="mt-3 flex justify-end">
+                <Button type="button" variant="secondary" size="sm" onClick={handleDraft} isLoading={isDrafting}>
+                  Generate Draft
+                </Button>
+              </div>
+            </div>
             <Input
               label="Name"
               value={name}
