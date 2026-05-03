@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendBookingConfirmationEmail } from '@/lib/email'
+import { getPaymentCurrency, getStripeClient } from '@/lib/stripe'
 import { AppointmentStatus, Prisma } from '@prisma/client'
 
 // POST /api/bookings - Create new booking
@@ -48,6 +49,8 @@ export async function POST(req: NextRequest) {
             location: true,
             maxBookingsPerSlot: true,
             requiresConfirmation: true,
+            requiresPayment: true,
+            paymentAmount: true,
           },
         })
 
@@ -91,8 +94,19 @@ export async function POST(req: NextRequest) {
           throw new Error('Slot is fully booked')
         }
 
-        // Determine initial status based on requiresConfirmation
-        const initialStatus = appointmentType.requiresConfirmation ? 'PENDING' : 'CONFIRMED'
+        const hasValidPaymentAmount =
+          typeof appointmentType.paymentAmount === 'number' &&
+          appointmentType.paymentAmount > 0
+
+        if (appointmentType.requiresPayment && !hasValidPaymentAmount) {
+          throw new Error('Invalid payment amount')
+        }
+
+        const needsPayment = appointmentType.requiresPayment && hasValidPaymentAmount
+
+        // Determine initial status based on payment + confirmation
+        const initialStatus =
+          appointmentType.requiresConfirmation || needsPayment ? 'PENDING' : 'CONFIRMED'
 
         // Create the booking
         const newBooking = await tx.booking.create({
@@ -134,6 +148,68 @@ export async function POST(req: NextRequest) {
       select: { name: true, email: true },
     })
 
+    const needsPayment =
+      appointmentType.requiresPayment &&
+      typeof appointmentType.paymentAmount === 'number' &&
+      appointmentType.paymentAmount > 0
+
+    if (needsPayment) {
+      const stripe = getStripeClient()
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        req.headers.get('origin') ||
+        'http://localhost:3000'
+      const currency = getPaymentCurrency()
+      const unitAmount = Math.round(appointmentType.paymentAmount * 100)
+
+      const checkoutSession = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        customer_email: session.user.email || undefined,
+        client_reference_id: booking.id,
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency,
+              unit_amount: unitAmount,
+              product_data: {
+                name: appointmentType.name,
+                description: appointmentType.location || undefined,
+              },
+            },
+          },
+        ],
+        metadata: {
+          bookingId: booking.id,
+          appointmentTypeId: appointmentType.id,
+          customerId: booking.customerId,
+        },
+        success_url: `${appUrl}/confirmation/${booking.id}?payment=success`,
+        cancel_url: `${appUrl}/booking/${appointmentType.id}?payment=cancelled`,
+      })
+
+      if (!checkoutSession.url) {
+        throw new Error('Payment session creation failed')
+      }
+
+      return NextResponse.json(
+        {
+          message: 'Payment required to confirm booking',
+          paymentRequired: true,
+          checkoutUrl: checkoutSession.url,
+          booking: {
+            id: booking.id,
+            appointmentType: appointmentType.name,
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+            status: booking.status,
+            confirmationCode: booking.confirmationCode,
+          },
+        },
+        { status: 201 }
+      )
+    }
+
     // Send confirmation email only if booking is confirmed
     if (booking.status === 'CONFIRMED' && customer?.email && customer?.name) {
       sendBookingConfirmationEmail(
@@ -151,9 +227,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        message: booking.status === 'CONFIRMED' 
-          ? 'Booking created successfully' 
-          : 'Booking created and pending confirmation',
+        message:
+          booking.status === 'CONFIRMED'
+            ? 'Booking created successfully'
+            : 'Booking created and pending confirmation',
         booking: {
           id: booking.id,
           appointmentType: appointmentType.name,
@@ -174,6 +251,20 @@ export async function POST(req: NextRequest) {
 
     if (error.message === 'Slot is fully booked') {
       return NextResponse.json({ error: 'Slot is fully booked' }, { status: 409 })
+    }
+
+    if (error.message === 'Invalid payment amount') {
+      return NextResponse.json(
+        { error: 'Payment amount is missing or invalid' },
+        { status: 400 }
+      )
+    }
+
+    if (error.message === 'Missing STRIPE_SECRET_KEY') {
+      return NextResponse.json(
+        { error: 'Payments are not configured on the server' },
+        { status: 500 }
+      )
     }
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {

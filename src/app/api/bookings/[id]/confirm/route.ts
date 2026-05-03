@@ -33,6 +33,13 @@ export async function POST(
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
     }
 
+    if (booking.appointmentType.requiresPayment && !booking.isPaid) {
+      return NextResponse.json(
+        { error: 'Payment is required before confirmation' },
+        { status: 400 }
+      )
+    }
+
     // Check if organiser owns this appointment type
     if (
       session.user.role === 'ORGANISER' &&

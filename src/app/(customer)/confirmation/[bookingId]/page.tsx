@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import Brand from '@/components/Brand'
 import { format } from 'date-fns'
-import { CheckCircle, Calendar, Clock, MapPin } from 'lucide-react'
+import { AlertCircle, CheckCircle, Calendar, Clock, MapPin } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface BookingDetails {
@@ -15,10 +15,14 @@ interface BookingDetails {
   appointmentType: {
     name: string
     location: string | null
+    requiresPayment: boolean
+    paymentAmount: number | null
   }
   startTime: string
   endTime: string
   confirmationCode: string
+  status: string
+  isPaid: boolean
 }
 
 export default function ConfirmationPage() {
@@ -28,6 +32,13 @@ export default function ConfirmationPage() {
 
   const [booking, setBooking] = useState<BookingDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  const currency = (process.env.NEXT_PUBLIC_PAYMENT_CURRENCY || 'INR').toUpperCase()
+  const formatAmount = (amount: number) =>
+    new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+    }).format(amount)
 
   useEffect(() => {
     fetchBooking()
@@ -71,6 +82,8 @@ export default function ConfirmationPage() {
 
   const startDate = new Date(booking.startTime)
   const endDate = new Date(booking.endTime)
+  const isPaymentPending =
+    booking.appointmentType.requiresPayment && !booking.isPaid
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -78,15 +91,29 @@ export default function ConfirmationPage() {
         <CardHeader>
           <div className="flex flex-col items-center text-center">
             <Brand size={56} showText={false} href="/" />
-            <CheckCircle className="text-green-600" size={48} />
-            <CardTitle className="mt-4 text-2xl">Booking Confirmed</CardTitle>
+            {isPaymentPending ? (
+              <AlertCircle className="text-amber-500" size={48} />
+            ) : (
+              <CheckCircle className="text-green-600" size={48} />
+            )}
+            <CardTitle className="mt-4 text-2xl">
+              {isPaymentPending ? 'Payment Pending' : 'Booking Confirmed'}
+            </CardTitle>
             <p className="text-gray-600 mt-2">
-              Your appointment is scheduled successfully.
+              {isPaymentPending
+                ? 'We are waiting for the payment to complete.'
+                : 'Your appointment is scheduled successfully.'}
             </p>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {booking.appointmentType.requiresPayment &&
+              typeof booking.appointmentType.paymentAmount === 'number' && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                  Payment amount: {formatAmount(booking.appointmentType.paymentAmount)}
+                </div>
+              )}
             <div>
               <p className="text-sm text-gray-500">Confirmation Code</p>
               <p className="text-lg font-mono font-semibold">{booking.confirmationCode}</p>
@@ -115,6 +142,11 @@ export default function ConfirmationPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              {isPaymentPending && (
+                <Button variant="outline" onClick={fetchBooking}>
+                  Refresh Payment Status
+                </Button>
+              )}
               <Button variant="primary" onClick={() => router.push('/my-bookings')}>
                 View My Bookings
               </Button>
