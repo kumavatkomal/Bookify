@@ -33,6 +33,8 @@ interface AppointmentTypeDetails {
   duration: number
   location: string | null
   questions: AppointmentQuestion[]
+  requiresPayment: boolean
+  paymentAmount: number | null
 }
 
 export default function BookingPage() {
@@ -49,6 +51,13 @@ export default function BookingPage() {
   const [notes, setNotes] = useState('')
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [isBooking, setIsBooking] = useState(false)
+
+  const currency = (process.env.NEXT_PUBLIC_PAYMENT_CURRENCY || 'INR').toUpperCase()
+  const formatAmount = (amount: number) =>
+    new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+    }).format(amount)
 
   // Generate week dates
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 })
@@ -172,6 +181,12 @@ export default function BookingPage() {
         throw new Error(data.error || 'Booking failed')
       }
 
+      if (data.checkoutUrl) {
+        toast.success('Redirecting to payment...')
+        window.location.assign(data.checkoutUrl)
+        return true
+      }
+
       toast.success('Booking confirmed!')
       router.push(`/confirmation/${data.booking.id}`)
       return true
@@ -226,6 +241,10 @@ export default function BookingPage() {
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge>{appointmentType.duration} min</Badge>
                 {appointmentType.location && <Badge>{appointmentType.location}</Badge>}
+                {appointmentType.requiresPayment &&
+                  typeof appointmentType.paymentAmount === 'number' && (
+                    <Badge>Payment: {formatAmount(appointmentType.paymentAmount)}</Badge>
+                  )}
               </div>
             </div>
           )}
@@ -356,6 +375,10 @@ export default function BookingPage() {
               <div className="space-y-1 text-sm text-gray-600">
                 <p>Date: {format(selectedDate, 'MMMM d, yyyy')}</p>
                 <p>Time: {format(selectedSlot.startTime, 'HH:mm')} - {format(selectedSlot.endTime, 'HH:mm')}</p>
+                {appointmentType?.requiresPayment &&
+                  typeof appointmentType.paymentAmount === 'number' && (
+                    <p>Payment: {formatAmount(appointmentType.paymentAmount)}</p>
+                  )}
               </div>
             </div>
           )}
@@ -368,7 +391,7 @@ export default function BookingPage() {
             isLoading={isBooking}
             disabled={!selectedSlot}
           >
-            Confirm Booking
+            {appointmentType?.requiresPayment ? 'Proceed to Payment' : 'Confirm Booking'}
           </Button>
         </CardContent>
         </Card>
